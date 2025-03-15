@@ -1,0 +1,26 @@
+node_modules/
+**/node_modules/
+
+dist/
+**/dist/
+
+.env
+.env.*
+**/.env
+**/.env.*
+
+*.log       # Ignore all log files
+.DS_Store   # macOS metadata file
+Thumbs.db   # Windows thumbnail cache
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+yarn.lock
+pnpm-lock.yaml
+**/yarn.lock
+**/pnpm-lock.yaml
+

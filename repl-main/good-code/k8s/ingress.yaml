@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: computeropensource
+  labels:
+    app: computeropensource
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: computeropensource
+  template:
+    metadata:
+      labels:
+        app: computeropensource
+    spec:
+      volumes:
+        - name: workspace-volume
+          emptyDir: {}
+      initContainers:
+        - name: copy-s3-resources
+          image: amazon/aws-cli
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              aws s3 cp s3://repl/code/computeropensource/ /workspace/ --recursive
+              --endpoint-url
+              https://75baf28fc7a7c44643aa8360beb57aa4.r2.cloudflarestorage.com/
+              && echo "Resources copied from S3";
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "ef17b72f589d14706663162174568005"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "d3a6c780525c0372cd8e6a2ab728a89340405f922db7c5ad1f8d11c2ad441052"
+          volumeMounts:
+            - name: workspace-volume
+              mountPath: /workspace
+      containers:
+        - name: runner
+          image: 100xdevs/runner:latest
+          ports:
+            - containerPort: 3001
+            - containerPort: 3000
+          volumeMounts:
+            - name: workspace-volume
+              mountPath: /workspace
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: computeropensource
+spec:
+  selector:
+    app: computeropensource
+  ports:
+    - protocol: TCP
+      name: ws
+      port: 3001
+      targetPort: 3001
+    - protocol: TCP
+      name: user
+      port: 3000
+      targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: computeropensource
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: computeropensource.kesartechnologies.software
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: computeropensource
+                port:
+                  number: 3001
+    - host: computeropensource.rudrkesar.engineer
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: computeropensource
+                port:
+                  number: 3000

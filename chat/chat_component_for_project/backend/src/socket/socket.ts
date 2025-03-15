@@ -1,0 +1,41 @@
+import { Server, Socket } from "socket.io";
+import express from "express";
+import http from "http";
+
+const app = express();
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:3010"],
+    methods: ["GET", "POST"],
+  },
+});
+interface UserSocketMap {
+  [userId: string]: Socket;
+}
+
+const userSocketMap: UserSocketMap = {}; // {userId:socket}
+
+io.on("connection", (socket: Socket) => {
+  // console.log("user connected with socket id", socket.id);
+  const userId: string | undefined = socket.handshake.query.userId?.toString();
+  if (userId) {
+    // console.log("userId", userId);
+    userSocketMap[userId] = socket;
+  }
+  io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  socket.on("disconnect", () => {
+    if (userId) {
+      delete userSocketMap[userId];
+    }
+    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  });
+});
+
+export { app, server, io };
+export const getReceiverSocketId = (receiverId: string): string | undefined => {
+  const receiverSocketId = userSocketMap[receiverId];
+  return receiverSocketId ? receiverSocketId.id : undefined;
+};

@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  email           String         @unique
+  username        String         @unique
+  profilePic      String?
+  password        String
+  createdAt       DateTime       @default(now())
+  senderId        Message[]      @relation("sender")
+  receiverIds     Message[]      @relation("receiver")
+  participantsIds Conversation[] @relation("participant")
+}
+
+model Conversation {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  participantsIds String[] @db.ObjectId
+  participant     User     @relation("participant", fields: [participantsIds], references: [id])
+  messageIds      String[] @default([]) @db.ObjectId
+  messages        Message  @relation(fields: [messageIds], references: [id])
+  createdAt       DateTime @default(now())
+}
+
+model Message {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  senderId     String         @db.ObjectId
+  sender       User           @relation("sender", fields: [senderId], references: [id])
+  receiverId   String         @db.ObjectId
+  receiver     User           @relation("receiver", fields: [receiverId], references: [id])
+  message      String
+  createdAt    DateTime       @default(now())
+  Conversation Conversation[]
+}
